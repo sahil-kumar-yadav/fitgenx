@@ -1,0 +1,468 @@
+"use client";
+
+import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useStorage, generateSamplePlan } from "@/context/StorageContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import CornerElements from "@/components/CornerElements";
+import { 
+  DumbbellIcon, 
+  AppleIcon, 
+  SparklesIcon, 
+  Loader2Icon,
+  UserIcon,
+  TargetIcon,
+  CalendarIcon,
+  ChevronRightIcon
+} from "lucide-react";
+
+interface FormData {
+  firstName: string;
+  lastName: string;
+  age: string;
+  gender: string;
+  height: string;
+  weight: string;
+  fitnessLevel: string;
+  fitnessGoal: string;
+  workoutDays: string;
+  equipmentAccess: string;
+  injuries: string;
+}
+
+const initialFormData: FormData = {
+  firstName: "",
+  lastName: "",
+  age: "",
+  gender: "",
+  height: "",
+  weight: "",
+  fitnessLevel: "beginner",
+  fitnessGoal: "general_fitness",
+  workoutDays: "3",
+  equipmentAccess: "full_gym",
+  injuries: "",
+};
+
+export default function GenerateProgramPage() {
+  const { user } = useUser();
+  const router = useRouter();
+  const { savePlan, plans } = useStorage();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPlan, setGeneratedPlan] = useState<ReturnType<typeof generateSamplePlan> | null>(null);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    const plan = generateSamplePlan({
+      fitnessLevel: formData.fitnessLevel,
+      fitnessGoal: formData.fitnessGoal,
+      workoutDays: parseInt(formData.workoutDays),
+      name: formData.firstName || "User",
+    });
+    
+    plan.userId = user?.id || "temp_user";
+    
+    setGeneratedPlan(plan);
+    setIsGenerating(false);
+  };
+
+  const handleSavePlan = () => {
+    if (generatedPlan) {
+      savePlan(generatedPlan);
+      router.push("/profile");
+    }
+  };
+
+  const handleRegenerate = () => {
+    setGeneratedPlan(null);
+  };
+
+  // Get user's existing plans count
+  const existingPlansCount = plans.length;
+
+  return (
+    <section className="relative z-10 pt-12 pb-32 flex-grow container mx-auto px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20 mb-4">
+            <SparklesIcon className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-4xl font-bold mb-4">
+            <span className="text-primary">AI</span> Program Generator
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Tell us about yourself and our AI will create a personalized fitness plan
+          </p>
+        </div>
+
+        {!generatedPlan ? (
+          <Card className="bg-card/90 backdrop-blur-sm border border-border">
+            <CornerElements />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserIcon className="w-5 h-5 text-primary" />
+                Your Information
+              </CardTitle>
+              <CardDescription>
+                Fill in your details to generate a personalized program
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Personal Info */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-primary border-b border-border pb-2">
+                    Personal Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm text-muted-foreground">First Name</label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        placeholder="John"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-muted-foreground">Last Name</label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        placeholder="Doe"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm text-muted-foreground">Age</label>
+                      <input
+                        type="number"
+                        name="age"
+                        value={formData.age}
+                        onChange={handleInputChange}
+                        placeholder="25"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-muted-foreground">Gender</label>
+                      <select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        <option value="">Select...</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm text-muted-foreground">Height</label>
+                      <input
+                        type="text"
+                        name="height"
+                        value={formData.height}
+                        onChange={handleInputChange}
+                        placeholder="5'10""
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-muted-foreground">Weight</label>
+                      <input
+                        type="text"
+                        name="weight"
+                        value={formData.weight}
+                        onChange={handleInputChange}
+                        placeholder="175 lbs"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fitness Info */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-primary border-b border-border pb-2">
+                    Fitness Profile
+                  </h3>
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Current Fitness Level</label>
+                    <select
+                      name="fitnessLevel"
+                      value={formData.fitnessLevel}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Primary Goal</label>
+                    <select
+                      name="fitnessGoal"
+                      value={formData.fitnessGoal}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="muscle_build">Build Muscle</option>
+                      <option value="weight_loss">Lose Weight</option>
+                      <option value="strength">Increase Strength</option>
+                      <option value="general_fitness">General Fitness</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Workout Days per Week</label>
+                    <select
+                      name="workoutDays"
+                      value={formData.workoutDays}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="2">2 days</option>
+                      <option value="3">3 days</option>
+                      <option value="4">4 days</option>
+                      <option value="5">5 days</option>
+                      <option value="6">6 days</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Equipment Access</label>
+                    <select
+                      name="equipmentAccess"
+                      value={formData.equipmentAccess}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="home">Home Gym</option>
+                      <option value="full_gym">Full Gym Access</option>
+                      <option value="dumbbells">Dumbbells Only</option>
+                      <option value="bodyweight">No Equipment</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Injuries or Limitations</label>
+                    <textarea
+                      name="injuries"
+                      value={formData.injuries}
+                      onChange={handleInputChange}
+                      placeholder="Any injuries or health conditions..."
+                      rows={2}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-center">
+                <Button
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  size="lg"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 px-8"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2Icon className="w-5 h-5 animate-spin mr-2" />
+                      Generating Your Program...
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon className="w-5 h-5 mr-2" />
+                      Generate AI Program
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Generated Plan Preview */}
+            <Card className="bg-card/90 backdrop-blur-sm border border-border">
+              <CornerElements />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DumbbellIcon className="w-5 h-5 text-primary" />
+                  Your Generated Program
+                </CardTitle>
+                <CardDescription>
+                  Review your personalized fitness plan before saving
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="workout" className="w-full">
+                  <TabsList className="mb-6 w-full grid grid-cols-2 bg-cyber-terminal-bg border">
+                    <TabsTrigger
+                      value="workout"
+                      className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+                    >
+                      <DumbbellIcon className="mr-2 size-4" />
+                      Workout Plan
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="diet"
+                      className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+                    >
+                      <AppleIcon className="mr-2 h-4 w-4" />
+                      Diet Plan
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="workout">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <TargetIcon className="h-4 w-4 text-primary" />
+                        <span className="font-mono text-sm text-muted-foreground">
+                          SCHEDULE: {generatedPlan.workoutPlan.schedule.join(", ")}
+                        </span>
+                      </div>
+
+                      <Accordion type="multiple" className="space-y-4">
+                        {generatedPlan.workoutPlan.exercises.map((exerciseDay, index) => (
+                          <AccordionItem
+                            key={index}
+                            value={exerciseDay.day}
+                            className="border rounded-lg overflow-hidden"
+                          >
+                            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-primary/10 font-mono">
+                              <div className="flex justify-between w-full items-center">
+                                <span className="text-primary">{exerciseDay.day}</span>
+                                <div className="text-xs text-muted-foreground">
+                                  {exerciseDay.routines.length} EXERCISES
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+
+                            <AccordionContent className="pb-4 px-4">
+                              <div className="space-y-3 mt-2">
+                                {exerciseDay.routines.map((routine, routineIndex) => (
+                                  <div
+                                    key={routineIndex}
+                                    className="border border-border rounded p-3 bg-background/50"
+                                  >
+                                    <div className="flex justify-between items-start mb-2">
+                                      <h4 className="font-semibold text-foreground">
+                                        {routine.name}
+                                      </h4>
+                                      <div className="flex items-center gap-2">
+                                        <div className="px-2 py-1 rounded bg-primary/20 text-primary text-xs font-mono">
+                                          {routine.sets} SETS
+                                        </div>
+                                        <div className="px-2 py-1 rounded bg-secondary/20 text-secondary text-xs font-mono">
+                                          {routine.reps} REPS
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {routine.description && (
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {routine.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="diet">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="font-mono text-sm text-muted-foreground">
+                          DAILY CALORIE TARGET
+                        </span>
+                        <div className="font-mono text-xl text-primary">
+                          {generatedPlan.dietPlan.dailyCalories} KCAL
+                        </div>
+                      </div>
+
+                      <div className="h-px w-full bg-border my-4"></div>
+
+                      <div className="space-y-4">
+                        {generatedPlan.dietPlan.meals.map((meal, index) => (
+                          <div
+                            key={index}
+                            className="border border-border rounded-lg overflow-hidden p-4"
+                          >
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-2 h-2 rounded-full bg-primary"></div>
+                              <h4 className="font-mono text-primary">{meal.name}</h4>
+                            </div>
+                            <ul className="space-y-2">
+                              {meal.foods.map((food, foodIndex) => (
+                                <li
+                                  key={foodIndex}
+                                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                                >
+                                  <span className="text-xs text-primary font-mono">
+                                    {String(foodIndex + 1).padStart(2, "0")}
+                                  </span>
+                                  {food}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-4">
+              <Button
+                variant="outline"
+                onClick={handleRegenerate}
+                className="border-border hover:border-primary/50"
+              >
+                <SparklesIcon className="w-4 h-4 mr-2" />
+                Regenerate
+              </Button>
+              <Button
+                onClick={handleSavePlan}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <ChevronRightIcon className="w-4 h-4 mr-2" />
+                Save & View Program
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
