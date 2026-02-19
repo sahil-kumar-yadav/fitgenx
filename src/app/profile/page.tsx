@@ -1,8 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { useStorage } from "@/context/StorageContext";
 import { useState } from "react";
 import ProfileHeader from "@/components/ProfileHeader";
 import NoFitnessPlan from "@/components/NoFitnessPlan";
@@ -16,25 +15,27 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import Link from "next/link";
 
 const ProfilePage = () => {
   const { user } = useUser();
-  const userId = user?.id as string;
-
-  const allPlans = useQuery(api.plans.getUserPlans, { userId });
+  const { plans, setActivePlan } = useStorage();
   const [selectedPlanId, setSelectedPlanId] = useState<null | string>(null);
 
-  const activePlan = allPlans?.find((plan) => plan.isActive);
+  // Filter plans for current user or demo plans
+  const userPlans = plans.filter((plan) => plan.userId === user?.id || plan.userId === "temp_user" || plan.userId === "");
+  
+  const activePlan = userPlans?.find((plan) => plan.isActive);
 
   const currentPlan = selectedPlanId
-    ? allPlans?.find((plan) => plan._id === selectedPlanId)
+    ? userPlans?.find((plan) => plan.id === selectedPlanId)
     : activePlan;
 
   return (
     <section className="relative z-10 pt-12 pb-32 flex-grow container mx-auto px-4">
       <ProfileHeader user={user} />
 
-      {allPlans && allPlans?.length > 0 ? (
+      {userPlans && userPlans?.length > 0 ? (
         <div className="space-y-8">
           {/* PLAN SELECTOR */}
           <div className="relative backdrop-blur-sm border border-border p-6">
@@ -45,17 +46,17 @@ const ProfilePage = () => {
                 <span className="text-foreground">Fitness Plans</span>
               </h2>
               <div className="font-mono text-xs text-muted-foreground">
-                TOTAL: {allPlans.length}
+                TOTAL: {userPlans.length}
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {allPlans.map((plan) => (
+              {userPlans.map((plan) => (
                 <Button
-                  key={plan._id}
-                  onClick={() => setSelectedPlanId(plan._id)}
+                  key={plan.id}
+                  onClick={() => setSelectedPlanId(plan.id)}
                   className={`text-foreground border hover:text-white ${
-                    selectedPlanId === plan._id
+                    selectedPlanId === plan.id
                       ? "bg-primary/20 text-primary border-primary"
                       : "bg-transparent border-border hover:border-primary/50"
                   }`}
@@ -215,3 +216,4 @@ const ProfilePage = () => {
   );
 };
 export default ProfilePage;
+
